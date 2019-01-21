@@ -8,12 +8,15 @@ public final class PrefetchContext: NSObject {
             queue.async(flags: .barrier) {
                 self._state = newValue
                 self.logHandler("state change: \(newValue))")
+                self.stateChangedHandler(newValue)
             }
         }
     }
 
     private var _state: State = .idle
 
+    public var stateChangedHandler: (State) -> Void = { _ in }
+    
     /// Default is 1.0
     public var leadingScreensForPrefetch: CGFloat {
         get { return queue.sync { _leadingScreensForPrefetch } }
