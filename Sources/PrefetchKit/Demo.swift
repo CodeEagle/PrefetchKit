@@ -1,16 +1,10 @@
-//
-//  ViewController.swift
-//  PrefetchDemo
-//
-//  Created by Lincoln on 2019/1/21.
-//  Copyright © 2019 SelfStudio. All rights reserved.
-//
-
+#if DEBUG
 import UIKit
-import PrefetchKit
+import SwiftUI
 
 class ViewController: UIViewController {
-    private var _numberOfCells = 10
+    private static var fixedLength = 10
+    private var _numberOfCells = ViewController.fixedLength
     private var prefetchContext: PrefetchContext?
     private lazy var tableView: UITableView = {
         let table = UITableView(frame: UIScreen.main.bounds)
@@ -25,6 +19,7 @@ class ViewController: UIViewController {
         view.addSubview(tableView)
         let ctx = tableView.prefetch {[weak self] (sc, ctx) in
             guard let sself = self else { return }
+            print("prefech")
             DispatchQueue.main.async {
                 sself._numberOfCells += 10
                 sself.tableView.reloadData()
@@ -34,6 +29,7 @@ class ViewController: UIViewController {
         ctx.enablePrefetchingDataSource(action: { (action) in
             print(action)
         })
+
         ctx.logPipeline { (msg) in
             print(msg)
         }
@@ -48,7 +44,7 @@ extension ViewController: UITableViewDataSource {
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "UITableViewCell")!
-        cell.textLabel?.text = "\(indexPath.row)"
+        cell.textLabel?.text = "\(indexPath.row) \(indexPath.row > ViewController.fixedLength ? "[prefetch data]" : "")"
         return cell
     }
 }
@@ -57,3 +53,20 @@ extension ViewController: UITableViewDelegate {
         return 300
     }
 }
+
+struct DemoView: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> ViewController {
+        ViewController()
+    }
+    
+    func updateUIViewController(_ uiViewController: ViewController, context: Context) {
+    }
+    
+}
+
+struct DemoView_Preview: PreviewProvider {
+    static var previews: some View {
+        DemoView()
+    }
+}
+#endif

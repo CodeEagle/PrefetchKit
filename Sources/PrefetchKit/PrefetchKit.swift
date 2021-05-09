@@ -1,33 +1,45 @@
+import UIKit
+
 public final class PrefetchContext: NSObject {
     // MARK: - properties
 
+    private var lock: os_unfair_lock = .init()
     /// Default is idle
-    public private(set) var state: State {
-        get { return queue.sync { _state } }
+    public var state: State {
+        get {
+            os_unfair_lock_lock(&lock)
+            defer { os_unfair_lock_unlock(&lock) }
+            return _state
+        }
         set {
-            queue.async(flags: .barrier) {
-                self._state = newValue
-                self.logHandler("state change: \(newValue))")
-                self.stateChangedHandler(newValue)
-            }
+            os_unfair_lock_lock(&lock)
+            defer { os_unfair_lock_unlock(&lock) }
+            _state = newValue
         }
     }
-
+     
     private var _state: State = .idle
 
     public var stateChangedHandler: (State) -> Void = { _ in }
     
     /// Default is 1.0
     public var leadingScreensForPrefetch: CGFloat {
-        get { return queue.sync { _leadingScreensForPrefetch } }
-        set { queue.async(flags: .barrier) { self._leadingScreensForPrefetch = newValue } }
+        get {
+            os_unfair_lock_lock(&lock)
+            defer { os_unfair_lock_unlock(&lock) }
+            return _leadingScreensForPrefetch
+        }
+        set {
+            os_unfair_lock_lock(&lock)
+            defer { os_unfair_lock_unlock(&lock) }
+            _leadingScreensForPrefetch = newValue
+        }
     }
 
     private var _leadingScreensForPrefetch: CGFloat = 1
 
     private var observer: NSObjectProtocol?
 
-    private lazy var queue = DispatchQueue(label: "app.selfstudio.prefetchcontext", attributes: .concurrent)
     private weak var sc: UIScrollView?
     private lazy var uiAction: (Action) -> Void = { _ in }
     private lazy var logHandler: (String) -> Void = { _ in }
@@ -164,7 +176,7 @@ extension PrefetchContext {
 extension UIScrollView {
     /// Enable Prefetch with closure
     ///
-    /// when the returned PrefetchContext is deinited or invalidated, it will stop observing
+    /// When the returned PrefetchContext is deinited or invalidated, it will stop observing
     ///
     /// - Parameter handler: prefetch handler
     /// - Returns: PrefetchContext
@@ -173,4 +185,3 @@ extension UIScrollView {
     }
 }
 
-import UIKit
